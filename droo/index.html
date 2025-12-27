@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="version" content="0.3">
+    <meta name="author" content="SFlightX">
+    <meta name="version_date" content="04-24-2025">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1">
+    <meta name="description" content="Our next and recent launches.">
+    <meta name="keywords" content="SFlightX, App, Tutorial, Help, Spaceflight Simulator, Juno: New Origins">
+    <meta property="og:image" content="https://sflightx.com/resources/v4/database/logo/logo.png" />
+    <meta property="og:url" content="sflightx.com" />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="@SFlightXJNO" />
+    <meta name="twitter:title" content="sFlightX" />
+    <meta name="twitter:description" content="Our next and recent launches." />
+    <meta name="twitter:image" content="https://sflightx.com/resources/v4/database/logo/logo.png" />
+    <title>SFlightX Map</title>
+    <link rel="icon" type="image/png" href="https://sflightx.com/resources/v4/database/logo/logo.png">
+
+    <script type="importmap">
+        {
+          "imports": {
+            "@material/web/": "https://esm.run/@material/web/"
+          }
+        }
+      </script>
+    <script type="module">
+        import '@material/web/all.js';
+        import { styles as typescaleStyles } from '@material/web/typography/md-typescale-styles.js';
+        document.adoptedStyleSheets.push(typescaleStyles.styleSheet);
+    </script>
+
+    <link rel="stylesheet" href="https://sflightx.com/resources/v4/element/material-dependency.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        .leaflet-popup-content-wrapper,
+        .leaflet-popup-tip {
+            background-color: var(--md-sys-color-surface);
+            border: 1px solid #333;
+            border-radius: 16px;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #1a1a1a;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+
+        header {
+            background-color: var(--md-sys-color-surface);
+            background-color: color-mix(in srgb, var(--md-sys-color-surface) 75%, transparent);
+            border-bottom: 0;
+            z-index: 1000;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="logo">
+            <span class="material-symbols-rounded" onclick="toggleSideSheet()" id="menu">menu</span>
+            <a href="https://sflightx.com">
+                <img id="logo" src="https://sflightx.com/resources/v4/database/logo/logo.png" alt="sFlightX Logo" />
+            </a>
+        </div>
+        <label><span class="material-symbols-rounded">dark_mode</span><md-switch id="themeToggle"></md-switch></label>
+    </header>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 1. Define image dimensions
+        const w = 1872;
+        const h = 936;
+        const url = 'https://sflightx.com/resources/v4/database/image/map_sflightx_com/droo_2k.png';
+
+        // Define the FILLED Material Icon Pin
+        const materialIcon = L.divIcon({
+            html: `
+        <div style="display: flex; justify-content: center; align-items: center;">
+            <span class="material-symbols-rounded" 
+                  style="font-size: 36px; 
+                         color: var(--md-sys-color-primary); 
+                         font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24 !important;
+                         filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));">
+                location_on
+            </span>
+        </div>`,
+            className: 'custom-material-pin',
+            iconSize: [36, 36],
+            iconAnchor: [18, 36],
+            popupAnchor: [0, -32]
+        });
+
+        // 2. Setup boundaries
+        const southWest = [-h, 0];
+        const northEast = [0, w];
+        const bounds = [southWest, northEast];
+
+        // 3. Initialize map with strict limits
+        const map = L.map('map', {
+            crs: L.CRS.Simple,
+            maxBounds: bounds,
+            maxBoundsViscosity: 1.0,
+            attributionControl: false,
+            zoomControl: false,
+            zoomSnap: 0.1
+        });
+
+        // 4. Add the image
+        L.imageOverlay(url, bounds).addTo(map);
+
+        // 5. CALCULATE DYNAMIC ZOOM LIMITS
+        // This finds the exact zoom level where the image fits the screen
+        const minZoomLevel = map.getBoundsZoom(bounds, true);
+
+        map.setMinZoom(minZoomLevel); // Prevents zooming out past the perimeter
+        map.setMaxZoom(1);            // Prevents over-zooming/blurriness
+        map.setView([-h / 2, w / 2], minZoomLevel); // Centers the map on load
+
+        const markerList = {};
+
+        async function loadLandmarks() {
+            try {
+                const response = await fetch('./landmarks.json?v=' + Date.now());
+                const landmarks = await response.json();
+
+                landmarks.forEach(place => {
+                    const marker = L.marker(place.coords, { icon: materialIcon }).addTo(map);
+
+                    const popupContent = `
+                <div style="font-family: Roboto, sans-serif; padding: 8px;">
+                    <h1 class="md-typescale-body-large" style="margin: 0 0 8px 0; color: var(--md-sys-color-primary);">${place.name}</h1>
+                    <p class="md-typescale-body-small" style="margin: 0; color: var(--md-sys-color-on-surface);">${place.description}</p>
+                    <md-filled-tonal-button
+                    style="margin-top: 16px;"
+                    onclick="window.open('https://map.sflightx.com/droo/#${place.slug}', '_blank')">
+                    View Details</md-filled-tonal-button>
+                </div>
+            `;
+
+                    marker.bindPopup(popupContent);
+
+                    // Store marker by its slug
+                    if (place.slug) {
+                        markerList[place.slug] = marker;
+                    }
+                });
+
+                // After all markers are loaded, check the URL for a hash
+                handleHashLink();
+
+            } catch (error) {
+                console.error("Error loading landmarks:", error);
+            }
+        }
+
+        // Function to focus on a landmark based on the URL hash
+        function handleHashLink() {
+            const hash = window.location.hash.substring(1).toLowerCase(); // remove the '#'
+            if (hash && markerList[hash]) {
+                const targetMarker = markerList[hash];
+
+                // 1. Center the map on the marker
+                map.setView(targetMarker.getLatLng(), 0); // Use 0 or 1 for zoom level
+
+                // 2. Open the popup automatically
+                targetMarker.openPopup();
+            }
+        }
+
+        // Listen for hash changes while the user is already on the page
+        window.addEventListener('hashchange', handleHashLink);
+
+        loadLandmarks();
+    </script>
+</body>
+
+</html>
