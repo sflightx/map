@@ -24,11 +24,23 @@
     <link rel="stylesheet" href="https://sflightx.com/resources/v4/element/material-dependency.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; background: #1a1a1a; overflow: hidden; }
-        
-        #map { height: 100vh; width: 100%; z-index: 1; }
-        
-        .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #1a1a1a;
+            overflow: hidden;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100%;
+            z-index: 1;
+        }
+
+        .leaflet-popup-content-wrapper,
+        .leaflet-popup-tip {
             background-color: var(--md-sys-color-surface);
             color: var(--md-sys-color-on-surface);
             border-radius: 16px;
@@ -36,21 +48,26 @@
 
         header {
             position: absolute;
-            top: 0; left: 0; right: 0;
+            top: 0;
+            left: 0;
+            right: 0;
             padding: 8px 16px;
             z-index: 1000;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
             pointer-events: none;
         }
 
-        header > * { pointer-events: auto; }
+        header>* {
+            pointer-events: auto;
+        }
 
-        .logo { display: flex; align-items: center; gap: 12px; }
-        .logo img { height: 40px; }
-        #menu { color: white; cursor: pointer; font-size: 28px; }
+        #menu {
+            color: white;
+            cursor: pointer;
+            font-size: 28px;
+        }
 
         .controls-wrapper {
             display: flex;
@@ -78,7 +95,9 @@
             display: none;
         }
 
-        .search-suggestions:not([hidden]) { display: block; }
+        .search-suggestions:not([hidden]) {
+            display: block;
+        }
 
         .suggestion-item {
             padding: 12px 16px;
@@ -105,20 +124,16 @@
         <div class="logo">
             <span class="material-symbols-rounded" onclick="toggleSideSheet()" id="menu">menu</span>
             <a href="https://sflightx.com">
-                <img id="logo" src="https://sflightx.com/resources/v4/database/logo/logo.png" alt="sFlightX Logo" />
+                <img src="https://sflightx.com/resources/v4/database/logo/logo.png" alt="sFlightX Logo" />
             </a>
         </div>
-        
         <div class="controls-wrapper">
             <div class="search-container">
-                <md-outlined-text-field 
-                    id="searchField" 
-                    placeholder="Search locations..." 
-                    type="search"
+                <md-outlined-text-field id="searchField" placeholder="Search locations..." type="search"
                     style="min-width: 250px;">
                     <md-icon slot="trailing-icon"><span class="material-symbols-rounded">search</span></md-icon>
                 </md-outlined-text-field>
-                
+
                 <div id="searchSuggestions" class="search-suggestions" hidden></div>
             </div>
             <span class="material-symbols-rounded">dark_mode</span>
@@ -179,7 +194,7 @@
             // If query is empty, hide suggestions AND remove URL hash
             if (!query) {
                 suggestionsBox.hidden = true;
-                
+
                 // NEW: Clear the hash when input is cleared
                 if (window.location.hash) {
                     history.replaceState(null, null, window.location.pathname);
@@ -211,12 +226,20 @@
             }
         }
 
+        //add map click funtionality
+        map.on('click', function (e) {
+            suggestionsBox.hidden = true;
+            //get coordinates of click
+            const coords = e.latlng;
+            console.log("Map clicked at: ", coords);
+        });
+
         // Handle clicks on suggestions
         suggestionsBox.addEventListener('click', (e) => {
             const item = e.target.closest('.suggestion-item');
             if (item) {
                 const { slug, name } = item.dataset;
-                
+
                 searchField.value = name;
                 suggestionsBox.hidden = true;
                 window.location.hash = slug;
@@ -274,12 +297,12 @@
 
         function handleHashLink() {
             const hash = decodeURIComponent(window.location.hash.substring(1));
-            
+
             if (hash && markerList[hash]) {
                 const targetMarker = markerList[hash];
                 map.setView(targetMarker.getLatLng(), 0);
                 targetMarker.openPopup();
-                
+
                 // Sync search bar: If URL has location, put name in box
                 const place = allLandmarks.find(p => p.slug === hash);
                 if (place) {
@@ -290,6 +313,8 @@
 
         window.addEventListener('hashchange', handleHashLink);
         loadLandmarks();
+
     </script>
 </body>
+
 </html>
