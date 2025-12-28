@@ -3,20 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="version" content="0.3">
-    <meta name="author" content="SFlightX">
-    <meta name="version_date" content="04-24-2025">
+    <meta name="version" content="0.7">
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1">
-    <meta name="description" content="Our next and recent launches.">
-    <meta name="keywords" content="SFlightX, App, Tutorial, Help, Spaceflight Simulator, Juno: New Origins">
-    <meta property="og:image" content="https://sflightx.com/resources/v4/database/logo/logo.png" />
-    <meta property="og:url" content="sflightx.com" />
-
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:site" content="@SFlightXJNO" />
-    <meta name="twitter:title" content="sFlightX" />
-    <meta name="twitter:description" content="Our next and recent launches." />
-    <meta name="twitter:image" content="https://sflightx.com/resources/v4/database/logo/logo.png" />
     <title>SFlightX Map</title>
     <link rel="icon" type="image/png" href="https://sflightx.com/resources/v4/database/logo/logo.png">
 
@@ -26,7 +14,7 @@
             "@material/web/": "https://esm.run/@material/web/"
           }
         }
-      </script>
+    </script>
     <script type="module">
         import '@material/web/all.js';
         import { styles as typescaleStyles } from '@material/web/typography/md-typescale-styles.js';
@@ -36,31 +24,78 @@
     <link rel="stylesheet" href="https://sflightx.com/resources/v4/element/material-dependency.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        .leaflet-popup-content-wrapper,
-        .leaflet-popup-tip {
+        body, html { margin: 0; padding: 0; height: 100%; background: #1a1a1a; overflow: hidden; }
+        
+        #map { height: 100vh; width: 100%; z-index: 1; }
+        
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip {
             background-color: var(--md-sys-color-surface);
-            border: 1px solid #333;
+            color: var(--md-sys-color-on-surface);
             border-radius: 16px;
         }
 
-        body,
-        html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            background: #1a1a1a;
-        }
-
-        #map {
-            height: 100vh;
-            width: 100%;
-        }
-
         header {
-            background-color: var(--md-sys-color-surface);
-            background-color: color-mix(in srgb, var(--md-sys-color-surface) 75%, transparent);
-            border-bottom: 0;
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            padding: 8px 16px;
             z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+            pointer-events: none;
+        }
+
+        header > * { pointer-events: auto; }
+
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo img { height: 40px; }
+        #menu { color: white; cursor: pointer; font-size: 28px; }
+
+        .controls-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .search-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-suggestions {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background-color: var(--md-sys-color-surface-container-high);
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 2000;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            display: none;
+        }
+
+        .search-suggestions:not([hidden]) { display: block; }
+
+        .suggestion-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--md-sys-color-on-surface);
+            transition: background 0.2s;
+        }
+
+        .suggestion-item:hover {
+            background-color: var(--md-sys-color-surface-container-highest);
+        }
+
+        .suggestion-item .material-symbols-rounded {
+            color: var(--md-sys-color-primary);
         }
     </style>
 </head>
@@ -73,40 +108,55 @@
                 <img id="logo" src="https://sflightx.com/resources/v4/database/logo/logo.png" alt="sFlightX Logo" />
             </a>
         </div>
-        <label><span class="material-symbols-rounded">dark_mode</span><md-switch id="themeToggle"></md-switch></label>
+        
+        <div class="controls-wrapper">
+            <div class="search-container">
+                <md-outlined-text-field 
+                    id="searchField" 
+                    placeholder="Search locations..." 
+                    type="search"
+                    style="min-width: 250px;">
+                    <md-icon slot="trailing-icon"><span class="material-symbols-rounded">search</span></md-icon>
+                </md-outlined-text-field>
+                
+                <div id="searchSuggestions" class="search-suggestions" hidden></div>
+            </div>
+            <span class="material-symbols-rounded">dark_mode</span>
+            <md-switch id="themeToggle"></md-switch>
+        </div>
     </header>
+
     <div id="map"></div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // 1. Define image dimensions
         const w = 1872;
         const h = 936;
         const url = 'https://sflightx.com/resources/v4/database/image/map_sflightx_com/droo_2k.png';
 
-        // Define the FILLED Material Icon Pin
+        let allLandmarks = [];
+        const markerList = {};
+        const searchField = document.getElementById('searchField');
+        const suggestionsBox = document.getElementById('searchSuggestions');
+
         const materialIcon = L.divIcon({
             html: `
-        <div style="display: flex; justify-content: center; align-items: center;">
-            <span class="material-symbols-rounded" 
-                  style="font-size: 36px; 
-                         color: var(--md-sys-color-primary); 
-                         font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24 !important;
-                         filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));">
-                location_on
-            </span>
-        </div>`,
+                <div style="display: flex; justify-content: center; align-items: center;">
+                    <span class="material-symbols-rounded" 
+                          style="font-size: 36px; 
+                                 color: var(--md-sys-color-primary); 
+                                 font-variation-settings: 'FILL' 1;
+                                 filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));">
+                        location_on
+                    </span>
+                </div>`,
             className: 'custom-material-pin',
             iconSize: [36, 36],
             iconAnchor: [18, 36],
             popupAnchor: [0, -32]
         });
 
-        // 2. Setup boundaries
-        const southWest = [-h, 0];
-        const northEast = [0, w];
-        const bounds = [southWest, northEast];
-
-        // 3. Initialize map with strict limits
+        const bounds = [[-h, 0], [0, w]];
         const map = L.map('map', {
             crs: L.CRS.Simple,
             maxBounds: bounds,
@@ -116,73 +166,130 @@
             zoomSnap: 0.1
         });
 
-        // 4. Add the image
         L.imageOverlay(url, bounds).addTo(map);
 
-        // 5. CALCULATE DYNAMIC ZOOM LIMITS
-        // This finds the exact zoom level where the image fits the screen
         const minZoomLevel = map.getBoundsZoom(bounds, true);
+        map.setMinZoom(minZoomLevel);
+        map.setMaxZoom(2);
+        map.setView([-h / 2, w / 2], minZoomLevel);
 
-        map.setMinZoom(minZoomLevel); // Prevents zooming out past the perimeter
-        map.setMaxZoom(1);            // Prevents over-zooming/blurriness
-        map.setView([-h / 2, w / 2], minZoomLevel); // Centers the map on load
+        // --- SEARCH LOGIC ---
 
-        const markerList = {};
+        function updateSuggestions(query) {
+            // If query is empty, hide suggestions AND remove URL hash
+            if (!query) {
+                suggestionsBox.hidden = true;
+                
+                // NEW: Clear the hash when input is cleared
+                if (window.location.hash) {
+                    history.replaceState(null, null, window.location.pathname);
+                }
+                return;
+            }
+
+            const lowerQuery = query.toLowerCase();
+            const matches = allLandmarks.filter(place =>
+                place.name.toLowerCase().includes(lowerQuery)
+            );
+
+            if (matches.length > 0) {
+                const html = matches.map(place => {
+                    const safeName = place.name.replace(/"/g, '&quot;');
+                    return `
+                    <div class="suggestion-item" data-slug="${place.slug}" data-name="${safeName}">
+                        <span class="material-symbols-rounded">location_on</span>
+                        <div>
+                            <div class="md-typescale-body-medium">${place.name}</div>
+                            <div class="md-typescale-body-small" style="opacity: 0.7;">${place.type || 'Location'}</div>
+                        </div>
+                    </div>`;
+                }).join('');
+                suggestionsBox.innerHTML = html;
+                suggestionsBox.hidden = false;
+            } else {
+                suggestionsBox.hidden = true;
+            }
+        }
+
+        // Handle clicks on suggestions
+        suggestionsBox.addEventListener('click', (e) => {
+            const item = e.target.closest('.suggestion-item');
+            if (item) {
+                const { slug, name } = item.dataset;
+                
+                searchField.value = name;
+                suggestionsBox.hidden = true;
+                window.location.hash = slug;
+            }
+        });
+
+        searchField.addEventListener('input', (e) => {
+            updateSuggestions(e.target.value);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-container')) {
+                suggestionsBox.hidden = true;
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '/' && document.activeElement !== searchField) {
+                e.preventDefault();
+                searchField.focus();
+            }
+        });
+
+        // --- DATA LOADING ---
 
         async function loadLandmarks() {
             try {
                 const response = await fetch('./landmarks.json?v=' + Date.now());
                 const landmarks = await response.json();
+                allLandmarks = landmarks;
 
                 landmarks.forEach(place => {
                     const marker = L.marker(place.coords, { icon: materialIcon }).addTo(map);
 
                     const popupContent = `
-                <div style="font-family: Roboto, sans-serif; padding: 8px;">
-                    <h1 class="md-typescale-body-large" style="margin: 0 0 8px 0; color: var(--md-sys-color-primary);">${place.name}</h1>
-                    <p class="md-typescale-body-small" style="margin: 0; color: var(--md-sys-color-on-surface);">${place.description}</p>
-                    <md-filled-tonal-button
-                    style="margin-top: 16px;"
-                    onclick="window.open('https://map.sflightx.com/droo/#${place.slug}', '_blank')">
-                    View Details</md-filled-tonal-button>
-                </div>
-            `;
-
+                        <div style="font-family: Roboto, sans-serif; padding: 8px; min-width: 200px;">
+                            <h3 class="md-typescale-title-medium" style="margin: 0 0 8px 0; color: var(--md-sys-color-primary);">${place.name}</h3>
+                            <p class="md-typescale-body-medium" style="margin: 0 0 16px 0; color: var(--md-sys-color-on-surface-variant);">${place.description}</p>
+                            <md-filled-tonal-button onclick="window.open('https://map.sflightx.com/location/#${place.slug}', '_blank')">
+                                View Details
+                            </md-filled-tonal-button>
+                        </div>
+                    `;
                     marker.bindPopup(popupContent);
 
-                    // Store marker by its slug
-                    if (place.slug) {
-                        markerList[place.slug] = marker;
-                    }
+                    if (place.slug) markerList[place.slug] = marker;
                 });
 
-                // After all markers are loaded, check the URL for a hash
+                // This ensures links still work on reload
                 handleHashLink();
-
             } catch (error) {
                 console.error("Error loading landmarks:", error);
             }
         }
 
-        // Function to focus on a landmark based on the URL hash
         function handleHashLink() {
-            const hash = window.location.hash.substring(1).toLowerCase(); // remove the '#'
+            const hash = decodeURIComponent(window.location.hash.substring(1));
+            
             if (hash && markerList[hash]) {
                 const targetMarker = markerList[hash];
-
-                // 1. Center the map on the marker
-                map.setView(targetMarker.getLatLng(), 0); // Use 0 or 1 for zoom level
-
-                // 2. Open the popup automatically
+                map.setView(targetMarker.getLatLng(), 0);
                 targetMarker.openPopup();
+                
+                // Sync search bar: If URL has location, put name in box
+                const place = allLandmarks.find(p => p.slug === hash);
+                if (place) {
+                    searchField.value = place.name;
+                }
             }
         }
 
-        // Listen for hash changes while the user is already on the page
         window.addEventListener('hashchange', handleHashLink);
-
         loadLandmarks();
     </script>
 </body>
-
 </html>
