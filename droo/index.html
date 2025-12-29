@@ -37,6 +37,7 @@
             height: 100vh;
             width: 100%;
             z-index: 1;
+            background: var(--md-sys-color-surface);
         }
 
         .leaflet-popup-content-wrapper,
@@ -149,6 +150,11 @@
         const h = 936;
         const url = 'https://sflightx.com/resources/v4/database/image/map_sflightx_com/droo_2k.png';
 
+        const padding = 400;
+        const imageBounds = [[-h, 0], [0, w]];
+        // expanded bounds include padding on all sides
+        const bounds = [[-h - padding, -padding], [0 + padding, w + padding]];
+
         let allLandmarks = [];
         const markerList = {};
         const searchField = document.getElementById('searchField');
@@ -171,7 +177,6 @@
             popupAnchor: [0, -32]
         });
 
-        const bounds = [[-h, 0], [0, w]];
         const map = L.map('map', {
             crs: L.CRS.Simple,
             maxBounds: bounds,
@@ -181,10 +186,14 @@
             zoomSnap: 0.1
         });
 
-        L.imageOverlay(url, bounds).addTo(map);
+        // Draw the image at its true bounds but allow the map to have
+        // larger bounds so users can pan/zoom out beyond the image.
+        L.imageOverlay(url, imageBounds).addTo(map);
 
-        const minZoomLevel = map.getBoundsZoom(bounds, true);
-        map.setMinZoom(minZoomLevel);
+        // Calculate min zoom for the image, then allow one extra zoom-out
+        // step so users can see beyond the map edges.
+        const minZoomLevel = map.getBoundsZoom(imageBounds, true);
+        map.setMinZoom(Math.max(minZoomLevel - 1, -10));
         map.setMaxZoom(2);
         map.setView([-h / 2, w / 2], minZoomLevel);
 
