@@ -1,0 +1,127 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="version" content="0.7">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1">
+    <title>SFlightX Map</title>
+    <link rel="icon" type="image/png" href="https://sflightx.com/resources/v4/database/logo/logo.png">
+
+    <script type="importmap">
+            {
+              "imports": {
+                "@material/web/": "https://esm.run/@material/web/"
+              }
+            }
+        </script>
+    <script type="module">
+        import '@material/web/all.js';
+        import { styles as typescaleStyles } from '@material/web/typography/md-typescale-styles.js';
+        document.adoptedStyleSheets.push(typescaleStyles.styleSheet);
+    </script>
+
+    <link rel="stylesheet" href="https://sflightx.com/resources/v4/element/material-dependency.css" />
+    <style>
+        body {
+            margin: 0;
+            background: #000;
+        }
+
+        #globe {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* The dot */
+        .marker-icon {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid white;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        /* The name (hidden by default) */
+        .marker-label {
+            display: none;
+            color: white;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 4px;
+            background: rgba(0, 0, 0, 0.7);
+            white-space: nowrap;
+        }
+
+        /* Hover Effect */
+        .landmark-marker:hover .marker-icon {
+            transform: scale(1.5);
+            box-shadow: 0 0 15px cyan;
+            /* Makes it glow */
+        }
+
+        .landmark-marker:hover .marker-label {
+            display: block;
+            /* Show name on hover */
+        }
+    </style>
+    <script src="//unpkg.com/globe.gl"></script>
+</head>
+
+<body>
+    <div id="globe"></div>
+
+    <script>
+        const world = Globe()
+            (document.getElementById('globe'));
+
+        fetch('https://sflightx.com/resources/v4/database/map/landmarks.json')
+            .then(res => res.json())
+            .then(landmarks => {
+
+                const LNG_OFFSET = 180;
+
+                // 3. Transform pixel coords to Lat/Lng
+                const gData = landmarks.map(d => {
+                    let lng = (d.coords[1] / MAP_WIDTH) * 360 - 180;
+
+                    // Apply the offset
+                    lng += LNG_OFFSET;
+
+                    // Keep longitude within -180 to 180 range
+                    if (lng > 180) lng -= 360;
+                    if (lng < -180) lng += 360;
+
+                    return {
+                        ...d,
+                        lat: -((d.coords[0] / MAP_HEIGHT) * 180 - 90),
+                        lng: lng,
+                        color: d.mode === 'stock' ? '#ffcc00' : '#00ffff'
+                    };
+                });
+
+                // 4. Add to Globe
+                world
+                    .htmlElementsData(gData)
+                    .htmlElement(d => {
+                        const el = document.createElement('div');
+                        el.className = 'landmark-marker'; // Add a class
+
+                        el.innerHTML = `
+      <div style="cursor: pointer; text-align: center;">
+        <div style="font-size: 20px;"><span class="material-symbols-rounded">location_on</span></div>
+        <div style="color: white; font-size: 10px; font-family: sans-serif; text-shadow: 1px 1px 2px black;">
+          ${d.name}
+        </div>
+      </div>
+    `;
+
+                        el.onclick = () => alert(`${d.name}: ${d.description}`);
+                        return el;
+                    });
+            });
+
+        // Replace these with the actual dimensions of your map image
+        const MAP_WIDTH = 1872;
+        const MAP_HEIGHT = 936;
+
+        world.globeImageUrl('https://sflightx.com/resources/v4/database/image/map_sflightx_com/droo_2k.png');
+    </script>
+</body>

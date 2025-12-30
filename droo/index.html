@@ -276,7 +276,7 @@
 
         async function loadLandmarks() {
             try {
-                const response = await fetch('./landmarks.json?v=' + Date.now());
+                const response = await fetch('https://sflightx.com/resources/v4/database/map/landmarks.json?v=' + Date.now());
                 const landmarks = await response.json();
                 allLandmarks = landmarks;
 
