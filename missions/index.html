@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="version" content="1.0">
-    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="viewport"
+        content="width=device-width, height=device-height, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>SFlightX Map</title>
     <link rel="icon" type="image/png" href="https://sflightx.com/resources/v4/database/logo/logo.png">
 
@@ -33,7 +34,7 @@
 
     <!-- Global & Page-Specific Stylesheets -->
     <link rel="stylesheet" href="https://sflightx.com/resources/v4/dependency.css" />
-    
+
     <style>
         body {
             margin: 0;
@@ -70,7 +71,7 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
         }
 
         /* HUD Control Panel overlay */
@@ -172,7 +173,8 @@
             text-align: center;
         }
 
-        .filter-btn.active, .filter-btn:hover {
+        .filter-btn.active,
+        .filter-btn:hover {
             background: var(--md-sys-color-primary, #6750A4);
             border-color: var(--md-sys-color-primary, #6750A4);
         }
@@ -190,6 +192,7 @@
         .landmark-list::-webkit-scrollbar {
             width: 4px;
         }
+
         .landmark-list::-webkit-scrollbar-thumb {
             background: rgba(255, 255, 255, 0.2);
             border-radius: 4px;
@@ -270,7 +273,7 @@
             padding: 1.5rem;
             width: 100%;
             max-width: 420px;
-            box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
             transform: scale(0.95);
             transition: transform 0.25s ease;
             box-sizing: border-box;
@@ -306,7 +309,7 @@
         }
 
         .modal-close:hover {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .modal-badge {
@@ -319,8 +322,17 @@
             margin-bottom: 0.75rem;
         }
 
-        .badge-stock { background: rgba(255, 204, 0, 0.15); color: #ffcc00; border: 1px solid rgba(255, 204, 0, 0.3); }
-        .badge-custom { background: rgba(0, 255, 255, 0.15); color: #00ffff; border: 1px solid rgba(0, 255, 255, 0.3); }
+        .badge-stock {
+            background: rgba(255, 204, 0, 0.15);
+            color: #ffcc00;
+            border: 1px solid rgba(255, 204, 0, 0.3);
+        }
+
+        .badge-custom {
+            background: rgba(0, 255, 255, 0.15);
+            color: #00ffff;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
 
         .modal-desc {
             font-size: 0.9rem;
@@ -334,7 +346,7 @@
             font-size: 0.75rem;
             opacity: 0.6;
             margin-bottom: 1.25rem;
-            background: rgba(255,255,255,0.04);
+            background: rgba(255, 255, 255, 0.04);
             padding: 0.4rem;
             border-radius: 8px;
         }
@@ -354,15 +366,16 @@
             transform: translateX(-50%) translateY(100px);
             background: #332d41;
             color: #e6e1e5;
-            border: 1px solid rgba(255,255,255,0.15);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             padding: 0.6rem 1rem;
             border-radius: 12px;
             z-index: 200;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
             transition: transform 0.3s ease;
             font-size: 0.85rem;
             white-space: nowrap;
         }
+
         .toast.show {
             transform: translateX(-50%) translateY(0);
         }
@@ -440,11 +453,12 @@
                 <span class="material-symbols-rounded">public</span> Droo Interactive Map
             </h3>
             <div class="hud-stats" id="landmarkCount">Loading landmarks...</div>
-            
+
             <!-- Live Search Bar -->
             <div class="search-box">
                 <span class="material-symbols-rounded search-icon">search</span>
-                <input type="text" class="search-input" id="searchInput" placeholder="Search landmarks..." oninput="handleSearch()">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search landmarks..."
+                    oninput="handleSearch()">
             </div>
 
             <div style="font-size: 0.8rem; font-weight: 500; margin-bottom: 0.4rem;">Filter:</div>
@@ -460,7 +474,8 @@
             </div>
         </div>
 
-        <div class="hud-card" style="padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center;">
+        <div class="hud-card"
+            style="padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center;">
             <span style="font-size: 0.85rem;">Auto-Rotate Globe</span>
             <md-switch id="rotateToggle" selected></md-switch>
         </div>
@@ -511,12 +526,20 @@
         // Enable auto-rotation by default
         world.controls().autoRotate = true;
         world.controls().autoRotateSpeed = 0.8;
+        // Logs exact pixel coordinates (X, Y) anywhere you click on the globe map
+        /*world.onGlobeClick(({ lat, lng }) => {
+            // Convert lat/lng back to the 1872x936 pixel map scale
+            const pixelX = Math.round(((lng + 180) / 360) * MAP_WIDTH);
+            const pixelY = Math.round(((90 - lat) / 180) * MAP_HEIGHT);
+
+            console.log(`Map Pixel Coords -> X: ${pixelX}, Y: ${pixelY} | (JSON format: [${-pixelY}, ${pixelX}])`);
+        });*/
 
         document.getElementById('rotateToggle').addEventListener('change', (e) => {
             world.controls().autoRotate = e.target.selected;
         });
 
-        fetch('https://sflightx.com/resources/v4/database/map/landmarks.json')
+        fetch('../../resources/v4/database/map/landmarks.json')
             .then(res => res.json())
             .then(landmarks => {
                 allLandmarks = landmarks.map(d => {
@@ -610,7 +633,7 @@
 
         function applySearchAndFilter() {
             const query = document.getElementById('searchInput').value.toLowerCase();
-            
+
             let filtered = allLandmarks.filter(d => {
                 const matchesType = (activeFilter === 'all' || d.mode === activeFilter);
                 const matchesQuery = d.name.toLowerCase().includes(query) || (d.description && d.description.toLowerCase().includes(query));
@@ -632,13 +655,13 @@
             document.getElementById('modalTitle').innerText = d.name;
             document.getElementById('modalDesc').innerText = d.description || "No description provided for this landmark.";
             document.getElementById('modalCoords').innerText = `Latitude: ${d.lat.toFixed(4)}° | Longitude: ${d.lng.toFixed(4)}°`;
-            
+
             const badge = document.getElementById('modalBadge');
             badge.innerText = d.mode || 'Unknown';
             badge.className = `modal-badge badge-${d.mode === 'stock' ? 'stock' : 'custom'}`;
 
             document.getElementById('infoModal').classList.add('open');
-            
+
             world.controls().autoRotate = false;
             document.getElementById('rotateToggle').selected = false;
         }
