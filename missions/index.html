@@ -539,7 +539,7 @@
             world.controls().autoRotate = e.target.selected;
         });
 
-        fetch('../../resources/v4/database/map/landmarks.json')
+        fetch('https://sflightx.com/resources/v4/database/map/landmarks.json')
             .then(res => res.json())
             .then(landmarks => {
                 allLandmarks = landmarks.map(d => {
